@@ -11,6 +11,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Enumer
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
+interface IDistributor {
+    function claim(uint8 categoryId) external;
+}
+
 contract Staking is
     ERC721BurnableUpgradeable,
     ERC721EnumerableUpgradeable,
@@ -381,5 +385,9 @@ contract Staking is
 
     function setRewardsOperator(address rewardsOperator_) external onlyOwner {
         rewardsOperator = rewardsOperator_;
+    }
+
+    function depositRewards(address distributor, uint8 categoryId) external {
+        IDistributor(distributor).claim(categoryId);
     }
 }
