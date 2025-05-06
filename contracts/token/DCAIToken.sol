@@ -19,6 +19,7 @@ contract DCAIToken is ERC20, ERC20Bridgeable, ERC20Permit, AccessControl {
     constructor(
         address defaultAdmin
     ) ERC20("DCAI", "DCAI") ERC20Permit("DCAI") {
+        _whitelisted[address(0)] = true;
         _mint(defaultAdmin, 100_000_000 ether);
         _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
         _openForAll = false;
