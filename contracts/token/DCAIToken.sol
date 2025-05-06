@@ -41,11 +41,10 @@ contract DCAIToken is ERC20, ERC20Bridgeable, ERC20Permit, AccessControl {
 
     function setWhitelist(
         address[] calldata addresses,
-        bool[] calldata statuses
+        bool status
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (addresses.length != statuses.length) revert InvalidInput();
         for (uint i = 0; i < addresses.length; i++) {
-            _whitelisted[addresses[i]] = statuses[i];
+            _whitelisted[addresses[i]] = status;
         }
     }
 

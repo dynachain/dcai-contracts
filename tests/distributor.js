@@ -26,6 +26,8 @@ describe("TokenDistributor", function () {
       await distributor.ALLOCATOR_ROLE(),
       admin.address
     );
+
+    await token.connect(admin).setWhitelist([admin.address, manager.address, user.address, otherUser.address, distributor.target], true)
   });
 
   it("should initialize with correct categories and token", async function () {
@@ -403,7 +405,7 @@ describe("TokenDistributor", function () {
 
     const allocations = await distributor.allocations(user.address, categoryId)
     expect(allocations.length).to.equal(2)
- 
+
     expect(allocations[1].amount.toString()).to.equal(parseEther("300").toString())
     expect(allocations[1][1].toString()).to.equal("0")
 
