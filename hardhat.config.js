@@ -32,6 +32,16 @@ module.exports = {
     ],
   },
   networks: {
+    baseSepolia: {
+      url: process.env.BASE_SEPOLIA_RPC_URL, // Load from .env
+      accounts: [process.env.PRIVATE_KEY],
+      verify: {
+        etherscan: {
+          apiUrl: "https://api-sepolia.basescan.org",
+          apiKey: process.env.ETHERSCAN_API_KEY,
+        },
+      }, // Load from .env
+    },
     arb_sepolia: {
       url: process.env.RPC_SEPOLIA_URL,
       chainId: 421614,

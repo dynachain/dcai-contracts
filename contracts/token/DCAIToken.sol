@@ -38,34 +38,4 @@ contract DCAIToken is ERC20, ERC20Bridgeable, ERC20Permit, AccessControl {
     ) public view override(ERC20Bridgeable, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
-
-    function setWhitelist(
-        address[] calldata addresses,
-        bool status
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint i = 0; i < addresses.length; i++) {
-            _whitelisted[addresses[i]] = status;
-        }
-    }
-
-    function isWhitelisted(address account) external view returns (bool) {
-        return _openForAll || _whitelisted[account];
-    }
-
-    function setOpenForAll(
-        bool newStatus
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _openForAll = newStatus;
-    }
-
-    function _update(
-        address from,
-        address to,
-        uint256 value
-    ) internal override {
-        if (!_openForAll && !_whitelisted[from] && !_whitelisted[to]) {
-            revert Unauthorized();
-        }
-        super._update(from, to, value);
-    }
 }
