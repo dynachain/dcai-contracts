@@ -10,19 +10,14 @@ import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC16
 contract DCAIToken is ERC20, ERC20Bridgeable, ERC20Permit, AccessControl {
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
 
-    mapping(address => bool) internal _whitelisted;
-    bool internal _openForAll;
-
     error Unauthorized();
     error InvalidInput();
 
     constructor(
         address defaultAdmin
     ) ERC20("DCAI", "DCAI") ERC20Permit("DCAI") {
-        _whitelisted[address(0)] = true;
         _mint(defaultAdmin, 100_000_000 ether);
         _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
-        _openForAll = false;
     }
 
     function burn(uint256 amount) external {
