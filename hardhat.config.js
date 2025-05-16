@@ -32,6 +32,16 @@ module.exports = {
     ],
   },
   networks: {
+    base: {
+      url: process.env.RPC_URL, // Load from .env
+      accounts: [process.env.PRIVATE_KEY],
+      verify: {
+        etherscan: {
+          apiUrl: process.env.RPC_URL,
+          apiKey: process.env.ETHERSCAN_API_KEY,
+        },
+      }, // Load from .env
+    },
     baseSepolia: {
       url: process.env.BASE_SEPOLIA_RPC_URL, // Load from .env
       accounts: [process.env.PRIVATE_KEY],
