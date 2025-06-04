@@ -36,4 +36,9 @@ contract LockFactory is ReentrancyGuard {
 
         emit LockCreated(msg.sender, address(vault), amount, matureAt);
     }
+
+    function unlock(address lock) public nonReentrant {
+        require(address(lock) != address(0), "Zero lock address");
+        Lock(lock).withdraw();
+    }
 }
