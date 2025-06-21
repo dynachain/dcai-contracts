@@ -93,10 +93,14 @@ contract TokenDistributor is
         uint256[] memory amounts
     ) public onlyRole(ALLOCATOR_ROLE) {
         Category storage category = categories[categoryId];
-        require(addresses.length == amounts.length, "Invalid input");
+        require(addresses.length == amounts.length, "Invalid addresses");
         require(cycles > 0, "Cycles must be greater than 0");
+        require(start > 0, "Invalid start time");
 
         for (uint256 i = 0; i < addresses.length; i++) {
+            require(addresses[i] != address(0), "Invalid address");
+            require(amounts[i] > 0, "Invalid amount");
+            
             if (categories[categoryId].balance < amounts[i]) {
                 revert("Insufficient balance");
             }
