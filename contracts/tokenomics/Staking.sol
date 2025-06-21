@@ -127,6 +127,9 @@ contract Staking is
         address token_,
         address rewardsOperator_
     ) external initializer {
+        require(token_ != address(0), "Invalid token");
+        require(rewardsOperator_ != address(0), "Invalid operator");
+
         _nextId = 1;
         __ERC721_init("sDCAI", "sDCAI");
         __ERC721Burnable_init();
@@ -423,6 +426,7 @@ contract Staking is
     }
 
     function setRewardsOperator(address rewardsOperator_) external onlyOwner {
+        require(rewardsOperator_ != address(0), "Invalid operator");
         rewardsOperator = rewardsOperator_;
     }
 
