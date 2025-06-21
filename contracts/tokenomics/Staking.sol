@@ -286,16 +286,16 @@ contract Staking is
     function claimBonus(
         uint256 amount,
         uint256 cid,
+        address recipient,
         bytes memory signature
     ) external nonReentrant {
-        address recipient = msg.sender;
 
         require(claims[cid] == 0, "Already claimed");
 
         bytes32 messageHash = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(amount, "-", cid, "-0"))
+                keccak256(abi.encodePacked(amount, "-", cid, "-", recipient))
                     .toEthSignedMessageHash()
             )
         );
