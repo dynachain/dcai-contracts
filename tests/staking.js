@@ -12,11 +12,14 @@ describe("DCAI Staking", function () {
   const DURATION_180_DAYS = 2;
   const DURATION_365_DAYS = 3;
 
+  const REWARD_CLAIM_TYPEHASH = "0x12af3f994285580898c63b190a2303c7d16f68cc5fe3be6bf41d07f4dadfc475"
+  let domainSeparator;
+
   beforeEach(async function () {
     [deployer, ops, user1, user2, user3] = await ethers.getSigners();
-
     // Deploy the DCAI token
-    dcaiToken = await ethers.deployContract("DCAIToken");
+    dcaiToken = await ethers.deployContract("DCAIToken", [deployer.address]);
+    await dcaiToken.setOpenForAll(true);
 
     // Transfer some tokens to users
     await dcaiToken.transfer(user1.address, parseEther("3000000"));
@@ -28,7 +31,10 @@ describe("DCAI Staking", function () {
     const Staking = await ethers.getContractFactory("Staking");
     staking = await upgrades.deployProxy(Staking, [dcaiToken.target, ops.address]);
     await staking.waitForDeployment();
+
     await dcaiToken.transfer(staking.target, parseEther("1000")); // interest
+    await staking.updateDomainSeparator("1");
+    domainSeparator = await staking.DOMAIN_SEPARATOR();
   });
 
   it("should apply minimum staking amount", async function () {
@@ -126,16 +132,40 @@ describe("DCAI Staking", function () {
 
     await staking.connect(deployer).setRewardsOperator(ops.address);
 
-    const messageHash = ethers.solidityPackedKeccak256(
-      ['uint256', 'string', 'uint256', 'string', 'uint256'],
-      [amount, '-', timestamp, '-', tokenId]
-    )
-      ;
-    const ethSignedMessageHash = ethers.hashMessage(ethers.getBytes(messageHash));
-    const signature = await ops.signMessage(ethers.getBytes(ethSignedMessageHash));
+    const types = {
+      claimReward: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'amount', type: 'uint256' },
+        { name: 'cid', type: 'uint256' }
+      ]
+    };
+
+    const value = {
+      tokenId: tokenId,
+      amount: amount,
+      cid: timestamp
+    };
+
+    // Sign with wrong signer
+    let signature = await user2.signTypedData(
+      {
+        name: 'DCAI Staking',
+        version: '1',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: staking.target
+      }, types, value);
+    await expect(staking.connect(user1).claimReward(tokenId, amount, timestamp, signature)).to.be.revertedWith("Invalid signature");
+
+    signature = await ops.signTypedData(
+      {
+        name: 'DCAI Staking',
+        version: '1',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: staking.target
+      }, types, value);
 
     // Claim rewards with signature
-    await staking.connect(user1).claimReward(tokenId, amount, timestamp, signature);
+    await expect(staking.connect(user1).claimReward(tokenId, amount, timestamp, signature)).to.not.be.reverted;
 
     // Get balance after claiming
     const balanceAfter = await dcaiToken.balanceOf(user1.address);
@@ -179,8 +209,6 @@ describe("DCAI Staking", function () {
     const tokenId = stakedEvent.args.tokenId;
     expect(await staking.ownerOf(tokenId)).to.equal(user1.address);
 
-
-
     // Withdraw tokens
     await expect(staking.connect(user1).unstake(tokenId)).to.be.reverted;
 
@@ -195,6 +223,43 @@ describe("DCAI Staking", function () {
     const balanceAfter = await dcaiToken.balanceOf(user1.address);
     expect(balanceAfter - balanceBefore).to.greaterThanOrEqual(parseEther("100"));
   })
+
+  it("should allow claiming bonus", async function () {
+    const amount = parseEther("5");
+    const timestamp = 1;
+
+    const types = {
+      claimBonus: [
+        { name: 'amount', type: 'uint256' },
+        { name: 'cid', type: 'uint256' },
+        { name: 'recipient', type: 'address' }
+      ]
+    };
+
+    const value = {
+      amount: amount,
+      cid: timestamp,
+      recipient: user1.address,
+    };
+
+    const balanceBefore = await dcaiToken.balanceOf(user1.address);
+
+    let signature = await ops.signTypedData(
+      {
+        name: 'DCAI Staking',
+        version: '1',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: staking.target
+      }, types, value);
+
+    await expect(staking.connect(user1).claimBonus(amount, timestamp, user1.address, signature)).to.not.be.reverted;
+
+    // Get balance after claiming
+    const balanceAfter = await dcaiToken.balanceOf(user1.address);
+
+    // Verify the claimed amount
+    expect(balanceAfter - balanceBefore).to.equal(amount);
+  });
 
 
 }); 
