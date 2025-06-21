@@ -279,7 +279,7 @@ contract Staking is
         uint256 cid,
         bytes memory signature
     ) external nonReentrant {
-        address owner = ownerOf(tokenId);
+        address tokenOwner = ownerOf(tokenId);
         StakeInfo storage stakeInfo = stakes[tokenId];
 
         require(claims[cid] == 0, "Already claimed");
@@ -303,9 +303,9 @@ contract Staking is
         stakeInfo.claimedRewards += amount;
 
         // Transfer rewards to the user
-        token.safeTransfer(owner, amount);
+        token.safeTransfer(tokenOwner, amount);
 
-        emit RewardClaimed(owner, tokenId, cid, amount);
+        emit RewardClaimed(tokenOwner, tokenId, cid, amount);
     }
 
     function csh(
