@@ -110,6 +110,14 @@ contract Staking is
 
     event BonusClaimed(address indexed user, uint256 cid, uint256 rewards);
 
+    bytes32 public DOMAIN_SEPARATOR;
+
+    bytes32 public constant BONUS_CLAIM_TYPEHASH =
+        keccak256("claimBonus(uint256 amount,uint256 cid,address recipient)");
+
+    bytes32 public constant REWARD_CLAIM_TYPEHASH =
+        keccak256("claimReward(uint256 tokenId,uint256 amount,uint256 cid)");
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -119,6 +127,9 @@ contract Staking is
         address token_,
         address rewardsOperator_
     ) external initializer {
+        require(token_ != address(0), "Invalid token");
+        require(rewardsOperator_ != address(0), "Invalid operator");
+
         _nextId = 1;
         __ERC721_init("sDCAI", "sDCAI");
         __ERC721Burnable_init();
@@ -192,6 +203,20 @@ contract Staking is
         rewardsOperator = rewardsOperator_;
     }
 
+    function updateDomainSeparator(string memory version) external onlyOwner {
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes("DCAI Staking")),
+                keccak256(bytes(version)),
+                block.chainid,
+                address(this)
+            )
+        );
+    }
+
     function determineTier(uint256 amount) public pure returns (uint8) {
         if (amount >= TIER3_MIN) {
             return 3;
@@ -254,17 +279,17 @@ contract Staking is
         uint256 cid,
         bytes memory signature
     ) external nonReentrant {
-        address owner = ownerOf(tokenId);
+        address tokenOwner = ownerOf(tokenId);
         StakeInfo storage stakeInfo = stakes[tokenId];
 
         require(claims[cid] == 0, "Already claimed");
 
+        bytes32 structHash = keccak256(
+            abi.encode(REWARD_CLAIM_TYPEHASH, tokenId, amount, cid)
+        );
+
         bytes32 messageHash = keccak256(
-            abi.encodePacked(
-                "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(amount, "-", cid, "-", tokenId))
-                    .toEthSignedMessageHash()
-            )
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
         );
 
         // Recover signer from signature
@@ -278,26 +303,43 @@ contract Staking is
         stakeInfo.claimedRewards += amount;
 
         // Transfer rewards to the user
-        token.safeTransfer(owner, amount);
+        token.safeTransfer(tokenOwner, amount);
 
-        emit RewardClaimed(owner, tokenId, cid, amount);
+        emit RewardClaimed(tokenOwner, tokenId, cid, amount);
+    }
+
+    function csh(
+        uint256 amount,
+        uint256 cid,
+        address recipient,
+        bytes memory signature
+    ) public view returns (address) {
+        bytes32 structHash = keccak256(
+            abi.encode(BONUS_CLAIM_TYPEHASH, amount, cid, recipient)
+        );
+
+        bytes32 messageHash = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
+
+        // Recover signer from signature
+        address signer = messageHash.recover(signature);
     }
 
     function claimBonus(
         uint256 amount,
         uint256 cid,
+        address recipient,
         bytes memory signature
     ) external nonReentrant {
-        address recipient = msg.sender;
-
         require(claims[cid] == 0, "Already claimed");
 
+        bytes32 structHash = keccak256(
+            abi.encode(BONUS_CLAIM_TYPEHASH, amount, cid, recipient)
+        );
+
         bytes32 messageHash = keccak256(
-            abi.encodePacked(
-                "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(amount, "-", cid, "-0"))
-                    .toEthSignedMessageHash()
-            )
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
         );
 
         // Recover signer from signature
@@ -384,6 +426,7 @@ contract Staking is
     }
 
     function setRewardsOperator(address rewardsOperator_) external onlyOwner {
+        require(rewardsOperator_ != address(0), "Invalid operator");
         rewardsOperator = rewardsOperator_;
     }
 
