@@ -288,6 +288,7 @@ contract Staking is
         uint256 cid,
         bytes memory signature
     ) external nonReentrant {
+        uint256 tokenId = 0;
         address recipient = msg.sender;
 
         require(claims[cid] == 0, "Already claimed");
@@ -295,7 +296,7 @@ contract Staking is
         bytes32 messageHash = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(amount, "-", cid, "-0"))
+                keccak256(abi.encodePacked(amount, "-", cid, "-", tokenId))
                     .toEthSignedMessageHash()
             )
         );
