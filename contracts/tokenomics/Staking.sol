@@ -308,24 +308,6 @@ contract Staking is
         emit RewardClaimed(tokenOwner, tokenId, cid, amount);
     }
 
-    function csh(
-        uint256 amount,
-        uint256 cid,
-        address recipient,
-        bytes memory signature
-    ) public view returns (address) {
-        bytes32 structHash = keccak256(
-            abi.encode(BONUS_CLAIM_TYPEHASH, amount, cid, recipient)
-        );
-
-        bytes32 messageHash = keccak256(
-            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
-        );
-
-        // Recover signer from signature
-        address signer = messageHash.recover(signature);
-    }
-
     function claimBonus(
         uint256 amount,
         uint256 cid,
